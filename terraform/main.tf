@@ -9,13 +9,13 @@ locals {
 
 data "archive_file" "generator_lambda_archive" {
   output_path = "lambda_generator.zip"
-  source_file = "../lambda/generator.py"
+  source_dir = "../lambda/generator"
   type        = "zip"
 }
 
 data "archive_file" "comparator_lambda_archive" {
   output_path = "lambda_comparator.zip"
-  source_file = "../lambda/comparator.py"
+  source_dir = "../lambda/comparator"
   type        = "zip"
 }
 
