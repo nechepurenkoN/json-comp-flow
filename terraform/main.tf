@@ -3,8 +3,20 @@ provider "aws" {
 }
 
 locals {
-  input_jsons = yamldecode(file("files.yml"))["input"]
+  input_jsons  = yamldecode(file("files.yml"))["input"]
   source_jsons = yamldecode(file("files.yml"))["source"]
+}
+
+data "archive_file" "generator_lambda_archive" {
+  output_path = "lambda_generator.zip"
+  source_file = "../lambda/generator.py"
+  type        = "zip"
+}
+
+data "archive_file" "comparator_lambda_archive" {
+  output_path = "lambda_comparator.zip"
+  source_file = "../lambda/comparator.py"
+  type        = "zip"
 }
 
 resource "aws_s3_bucket" "input_bucket" {
@@ -54,3 +66,54 @@ resource "aws_s3_bucket_inventory" "input_bucket_inventory" {
   }
 }
 
+resource "aws_iam_role" "lambda_s3_role" {
+  name = "lambda_s3_role"
+
+  assume_role_policy = jsonencode({
+    Version   = "2012-10-17"
+    Statement = [
+      {
+        Action    = "sts:AssumeRole"
+        Effect    = "Allow"
+        Principal = {
+          Service = "lambda.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_s3_role_policy_attachment" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+  role       = aws_iam_role.lambda_s3_role.name
+}
+
+resource "aws_lambda_function" "generator" {
+  function_name = "json_generator"
+  role          = aws_iam_role.lambda_s3_role.arn
+
+  handler = "generator.handle"
+  runtime = "python3.8"
+
+  filename         = data.archive_file.generator_lambda_archive.output_path
+  source_code_hash = data.archive_file.generator_lambda_archive.output_base64sha256
+
+  environment {
+    variables = {}
+  }
+}
+
+resource "aws_lambda_function" "comparator" {
+  function_name = "json_comparator"
+  role          = aws_iam_role.lambda_s3_role.arn
+
+  handler = "comparator.handle"
+  runtime = "python3.8"
+
+  filename         = data.archive_file.comparator_lambda_archive.output_path
+  source_code_hash = data.archive_file.comparator_lambda_archive.output_base64sha256
+
+  environment {
+    variables = {}
+  }
+}
