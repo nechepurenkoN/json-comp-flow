@@ -1,0 +1,14 @@
+{
+  "Comment": "Step function that controls json pipeline execution",
+  "StartAt": "TriggerBatchLoad",
+  "States": {
+    "TriggerBatchLoad": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${generator_arn}"
+      },
+      "End": true
+    }
+  }
+}
