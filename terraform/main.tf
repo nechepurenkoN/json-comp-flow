@@ -27,6 +27,10 @@ resource "aws_s3_bucket" "source_bucket" {
   bucket = "nechn-json-comp-flow-source-bucket"
 }
 
+resource "aws_s3_bucket" "result_bucket" {
+  bucket = "nechn-json-comp-flow-result-bucket"
+}
+
 resource "aws_s3_object" "input_object" {
   for_each = {for input_object in local.input_jsons : input_object.name => input_object}
 
@@ -146,7 +150,9 @@ resource "aws_sfn_state_machine" "state_machine" {
   role_arn = aws_iam_role.step_functions_role.arn
 
   definition = templatefile("sf.json", {
-    generator_arn = aws_lambda_function.generator.arn
+    generator_arn = aws_lambda_function.generator.arn,
+    comparator_arn = aws_lambda_function.comparator.arn,
+    result_bucket = aws_s3_bucket.result_bucket.bucket
   })
 }
 

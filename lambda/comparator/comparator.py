@@ -8,4 +8,7 @@ def handle(event, context):
     obj = s3.Object("nechn-json-comp-flow-source-bucket", f"source/source{event['id']}.json")
     content = obj.get()['Body'].read().decode('utf-8')
 
-    return DeepDiff(event, content, ignore_order=True)
+    diff = DeepDiff(event, content, ignore_order=True)
+    if diff:
+        return {"filename": f"result{event['id']}", "delta": diff}
+
