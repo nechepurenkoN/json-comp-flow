@@ -9,13 +9,13 @@ locals {
 
 data "archive_file" "generator_lambda_archive" {
   output_path = "lambda_generator.zip"
-  source_dir = "../lambda/generator"
+  source_dir  = "../lambda/generator"
   type        = "zip"
 }
 
 data "archive_file" "comparator_lambda_archive" {
   output_path = "lambda_comparator.zip"
-  source_dir = "../lambda/comparator"
+  source_dir  = "../lambda/comparator"
   type        = "zip"
 }
 
@@ -29,6 +29,20 @@ resource "aws_s3_bucket" "source_bucket" {
 
 resource "aws_s3_bucket" "result_bucket" {
   bucket = "nechn-json-comp-flow-result-bucket"
+}
+
+resource "aws_s3_bucket_ownership_controls" "input_bucket_oc" {
+  bucket = aws_s3_bucket.input_bucket.id
+  rule {
+    object_ownership = "BucketOwnerPreferred"
+  }
+}
+
+resource "aws_s3_bucket_acl" "input_bucket_acl" {
+  depends_on = [aws_s3_bucket_ownership_controls.input_bucket_oc]
+
+  bucket = aws_s3_bucket.input_bucket.id
+  acl    = "private"
 }
 
 resource "aws_s3_object" "input_object" {
@@ -74,14 +88,14 @@ resource "aws_s3_bucket_policy" "inventory_input_policy" {
   bucket = aws_s3_bucket.input_bucket.bucket
 
   policy = jsonencode({
-    Version = "2012-10-17"
+    Version   = "2012-10-17"
     Statement = [
       {
-        Sid = "AllowS3ToWriteObjects"
-        Effect = "Allow"
+        Sid       = "AllowS3ToWriteObjects"
+        Effect    = "Allow"
         Principal = "*"
-        Action = "s3:PutObject"
-        Resource = "${aws_s3_bucket.input_bucket.arn}/*"
+        Action    = "s3:PutObject"
+        Resource  = "${aws_s3_bucket.input_bucket.arn}/*"
       }
     ]
   })
@@ -143,11 +157,11 @@ resource "aws_iam_role" "step_functions_role" {
   name = "step_functions_role"
 
   assume_role_policy = jsonencode({
-    Version = "2012-10-17"
+    Version   = "2012-10-17"
     Statement = [
       {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
+        Action    = "sts:AssumeRole"
+        Effect    = "Allow"
         Principal = {
           Service = "states.amazonaws.com"
         }
@@ -173,9 +187,9 @@ resource "aws_sfn_state_machine" "state_machine" {
   role_arn = aws_iam_role.step_functions_role.arn
 
   definition = templatefile("sf.json", {
-    generator_arn = aws_lambda_function.generator.arn,
+    generator_arn  = aws_lambda_function.generator.arn,
     comparator_arn = aws_lambda_function.comparator.arn,
-    result_bucket = aws_s3_bucket.result_bucket.arn
+    result_bucket  = aws_s3_bucket.result_bucket.arn
   })
 }
 
