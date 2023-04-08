@@ -1,6 +1,6 @@
 {
   "Comment": "Step function that controls json pipeline execution",
-  "StartAt": "TriggerBatchLoad",
+  "StartAt": "GenerateJson",
   "States": {
     "GenerateJson": {
       "Type": "Task",
@@ -8,7 +8,7 @@
       "Parameters": {
         "FunctionName": "${generator_arn}"
       },
-      "Next": "WriteS3"
+      "Next": "CompareJson"
     },
     "CompareJson": {
       "Type": "Task",
@@ -20,7 +20,7 @@
     },
     "WriteS3": {
       "Type": "Task",
-      "Resource": "arn:aws:states:::s3:PutObject",
+      "Resource": "arn:aws:states:::aws-sdk:s3:putObject",
       "Parameters": {
         "Bucket": "${result_bucket}",
         "Key.$": "$.filename",

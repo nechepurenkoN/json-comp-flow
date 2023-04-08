@@ -145,6 +145,12 @@ resource "aws_iam_policy_attachment" "step_functions_lambda_policy_attachment" {
   roles      = [aws_iam_role.step_functions_role.name]
 }
 
+resource "aws_iam_policy_attachment" "step_functions_s3_policy_attachment" {
+  name       = "step_functions_s3_policy_attachment"
+  policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+  roles      = [aws_iam_role.step_functions_role.name]
+}
+
 resource "aws_sfn_state_machine" "state_machine" {
   name     = "state_machine"
   role_arn = aws_iam_role.step_functions_role.arn
@@ -152,7 +158,7 @@ resource "aws_sfn_state_machine" "state_machine" {
   definition = templatefile("sf.json", {
     generator_arn = aws_lambda_function.generator.arn,
     comparator_arn = aws_lambda_function.comparator.arn,
-    result_bucket = aws_s3_bucket.result_bucket.bucket
+    result_bucket = aws_s3_bucket.result_bucket.arn
   })
 }
 
