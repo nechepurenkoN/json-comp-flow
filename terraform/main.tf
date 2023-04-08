@@ -70,6 +70,23 @@ resource "aws_s3_bucket_inventory" "input_bucket_inventory" {
   }
 }
 
+resource "aws_s3_bucket_policy" "inventory_input_policy" {
+  bucket = aws_s3_bucket.input_bucket.bucket
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid = "AllowS3ToWriteObjects"
+        Effect = "Allow"
+        Principal = "*"
+        Action = "s3:PutObject"
+        Resource = "${aws_s3_bucket.input_bucket.arn}/*"
+      }
+    ]
+  })
+}
+
 resource "aws_iam_role" "lambda_s3_role" {
   name = "lambda_s3_role"
 
