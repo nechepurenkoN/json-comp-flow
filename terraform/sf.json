@@ -2,6 +2,17 @@
   "Comment": "Step function that controls json pipeline execution",
   "StartAt": "GenerateJson",
   "States": {
+    "InitiateS3Load": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::s3:batchJob",
+      "Parameters": {
+        "JobDefinition": "arn:aws:batch:<region>:<account-id>:job-definition/<job-definition-name>:<revision>",
+        "JobName": "<job-name>",
+        "JobQueue": "arn:aws:batch:<region>:<account-id>:job-queue/<job-queue-name>",
+        "InvocationSchemaVersion": "v1.0"
+      },
+      "Next": "GenerateJson"
+    },
     "GenerateJson": {
       "Type": "Task",
       "Resource": "arn:aws:states:::lambda:invoke",
