@@ -189,7 +189,10 @@ resource "aws_sfn_state_machine" "state_machine" {
   definition = templatefile("sf.json", {
     generator_arn  = aws_lambda_function.generator.arn,
     comparator_arn = aws_lambda_function.comparator.arn,
-    result_bucket  = aws_s3_bucket.result_bucket.arn
+    result_bucket  = aws_s3_bucket.result_bucket.arn,
+    input_bucket   = aws_s3_bucket.input_bucket.bucket,
+    inventory_name = aws_s3_bucket_inventory.input_bucket_inventory.bucket,
+    manifest_date  = "2023-04-09T01-00Z"
   })
 }
 

@@ -1,41 +1,57 @@
 {
   "Comment": "Step function that controls json pipeline execution",
-  "StartAt": "GenerateJson",
+  "StartAt": "ProcessObjects",
   "States": {
-    "InitiateS3Load": {
-      "Type": "Task",
-      "Resource": "arn:aws:states:::s3:batchJob",
-      "Parameters": {
-        "JobDefinition": "arn:aws:batch:<region>:<account-id>:job-definition/<job-definition-name>:<revision>",
-        "JobName": "<job-name>",
-        "JobQueue": "arn:aws:batch:<region>:<account-id>:job-queue/<job-queue-name>",
-        "InvocationSchemaVersion": "v1.0"
+    "ProcessObjects": {
+      "Type": "Map",
+      "ItemReader": {
+        "ReaderConfig": {
+          "InputType": "MANIFEST"
+        },
+        "Resource": "arn:aws:states:::s3:getObject",
+        "Parameters": {
+          "Bucket": "${input_bucket}",
+          "Key": "inventory/${input_bucket}/${inventory_name}/${manifest_date}/manifest.json"
+        }
       },
-      "Next": "GenerateJson"
-    },
-    "GenerateJson": {
-      "Type": "Task",
-      "Resource": "arn:aws:states:::lambda:invoke",
-      "Parameters": {
-        "FunctionName": "${generator_arn}"
+      "ItemProcessor": {
+        "ProcessorConfig": {
+          "Mode": "DISTRIBUTED",
+          "ExecutionType": "STANDARD"
+        },
+        "StartAt": "GenerateJson",
+        "States": {
+          "GenerateJson": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::lambda:invoke",
+            "Parameters": {
+              "FunctionName": "${generator_arn}"
+            },
+            "Next": "CompareJson"
+          },
+          "CompareJson": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::lambda:invoke",
+            "Parameters": {
+              "FunctionName": "${comparator_arn}"
+            },
+            "Next": "WriteS3"
+          },
+          "WriteS3": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::aws-sdk:s3:putObject",
+            "Parameters": {
+              "Bucket": "${result_bucket}",
+              "Key.$": "$.filename",
+              "Body.$": "$.Payload"
+            },
+            "End": true
+          }
+        }
       },
-      "Next": "CompareJson"
-    },
-    "CompareJson": {
-      "Type": "Task",
-      "Resource": "arn:aws:states:::lambda:invoke",
-      "Parameters": {
-        "FunctionName": "${comparator_arn}"
-      },
-      "Next": "WriteS3"
-    },
-    "WriteS3": {
-      "Type": "Task",
-      "Resource": "arn:aws:states:::aws-sdk:s3:putObject",
-      "Parameters": {
-        "Bucket": "${result_bucket}",
-        "Key.$": "$.filename",
-        "Body.$": "$.Payload"
+      "MaxConcurrency": 10,
+      "ItemBatcher": {
+        "MaxItemsPerBatch": 1
       },
       "End": true
     }
