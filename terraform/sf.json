@@ -55,7 +55,7 @@
         "Resource": "arn:aws:states:::s3:putObject",
         "Parameters": {
           "Bucket": "${result_bucket}",
-          "Prefix": "json_comp"
+          "Prefix.$": "$$.Execution.StartTime"
         }
       },
       "End": true
