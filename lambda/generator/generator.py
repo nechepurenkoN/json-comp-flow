@@ -3,15 +3,16 @@ import json
 
 
 def handle(event, context):
-    print(event)
     s3 = boto3.resource('s3')
+    return [s3_key_to_source_item(s3, file_key=item['Key'])
+            for item in event['Items']]
 
-    event_id = event["id"]
-    obj = s3.Object("nechn-json-comp-flow-input-bucket", f"input/input{event_id}.json")
+
+def s3_key_to_source_item(s3, file_key):
+    obj = s3.Object("nechn-json-comp-flow-input-bucket", file_key)
     content = json.loads(obj.get()['Body'].read().decode('utf-8'))
-
     return {
-        "id": event_id,
+        "id": file_key.split('input/input')[-1][:-5],
         "props": {
             "prop1": content["input"],
             "prop2": "val2",

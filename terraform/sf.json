@@ -25,7 +25,8 @@
             "Type": "Task",
             "Resource": "arn:aws:states:::lambda:invoke",
             "Parameters": {
-              "FunctionName": "${generator_arn}"
+              "FunctionName": "${generator_arn}",
+              "Payload.$": "$"
             },
             "Next": "CompareJson"
           },
@@ -33,17 +34,8 @@
             "Type": "Task",
             "Resource": "arn:aws:states:::lambda:invoke",
             "Parameters": {
-              "FunctionName": "${comparator_arn}"
-            },
-            "Next": "WriteS3"
-          },
-          "WriteS3": {
-            "Type": "Task",
-            "Resource": "arn:aws:states:::aws-sdk:s3:putObject",
-            "Parameters": {
-              "Bucket": "${result_bucket}",
-              "Key.$": "$.filename",
-              "Body.$": "$.Payload"
+              "FunctionName": "${comparator_arn}",
+              "Payload.$": "$"
             },
             "End": true
           }
