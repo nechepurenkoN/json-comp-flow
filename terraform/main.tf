@@ -123,6 +123,11 @@ resource "aws_iam_role_policy_attachment" "lambda_s3_role_policy_attachment" {
   role       = aws_iam_role.lambda_s3_role.name
 }
 
+resource "aws_iam_role_policy_attachment" "lambda_basic_exec_policy_attachment" {
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"
+  role       = aws_iam_role.lambda_s3_role.name
+}
+
 resource "aws_lambda_function" "generator" {
   function_name = "json_generator"
   role          = aws_iam_role.lambda_s3_role.arn
@@ -182,6 +187,12 @@ resource "aws_iam_policy_attachment" "step_functions_s3_policy_attachment" {
   roles      = [aws_iam_role.step_functions_role.name]
 }
 
+resource "aws_iam_policy_attachment" "step_functions_start_execution_policy_attachment" {
+  name       = "step_functions_start_execution_policy_attachment"
+  policy_arn = "arn:aws:iam::aws:policy/AWSStepFunctionsFullAccess"
+  roles      = [aws_iam_role.step_functions_role.name]
+}
+
 resource "aws_sfn_state_machine" "state_machine" {
   name     = "state_machine"
   role_arn = aws_iam_role.step_functions_role.arn
@@ -191,7 +202,7 @@ resource "aws_sfn_state_machine" "state_machine" {
     comparator_arn = aws_lambda_function.comparator.arn,
     result_bucket  = aws_s3_bucket.result_bucket.arn,
     input_bucket   = aws_s3_bucket.input_bucket.bucket,
-    inventory_name = aws_s3_bucket_inventory.input_bucket_inventory.bucket,
+    inventory_name = aws_s3_bucket_inventory.input_bucket_inventory.name,
     manifest_date  = "2023-04-09T01-00Z"
   })
 }

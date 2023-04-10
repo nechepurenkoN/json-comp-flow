@@ -3,6 +3,7 @@ import json
 
 
 def handle(event, context):
+    print(event)
     s3 = boto3.resource('s3')
 
     event_id = event["id"]
