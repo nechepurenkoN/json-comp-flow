@@ -4,7 +4,7 @@ import json
 
 def handle(event, context):
     s3 = boto3.resource('s3')
-    return [s3_key_to_source_item(s3, file_key=item['Key'])
+    return [s3_key_to_source_item(s3, file_key=item['input_file']['Key'])
             for item in event['Items']]
 
 
