@@ -14,6 +14,7 @@
           "Key": "inventory/${input_bucket}/${inventory_name}/${manifest_date}/manifest.json"
         }
       },
+      "ToleratedFailurePercentage": 30,
       "ItemProcessor": {
         "ProcessorConfig": {
           "Mode": "DISTRIBUTED",
@@ -35,8 +36,9 @@
             "Resource": "arn:aws:states:::lambda:invoke",
             "Parameters": {
               "FunctionName": "${comparator_arn}",
-              "Payload.$": "$"
+              "Payload.$": "$.Payload"
             },
+            "OutputPath": "$.Payload",
             "End": true
           }
         }
@@ -44,6 +46,13 @@
       "MaxConcurrency": 10,
       "ItemBatcher": {
         "MaxItemsPerBatch": 1
+      },
+      "ResultWriter": {
+        "Resource": "arn:aws:states:::s3:putObject",
+        "Parameters": {
+          "Bucket": "${result_bucket}",
+          "Prefix": "json_comp"
+        }
       },
       "End": true
     }

@@ -6,7 +6,7 @@ import json
 def handle(event, context):
     s3 = boto3.resource('s3')
     result = []
-    for item in event['Payload']:
+    for item in event:
         source_id = item['id']
         obj = s3.Object("nechn-json-comp-flow-source-bucket", f"source/source{source_id}.json")
         content = json.loads(obj.get()['Body'].read().decode('utf-8'))
