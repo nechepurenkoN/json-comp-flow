@@ -118,11 +118,6 @@ resource "aws_iam_role" "lambda_s3_role" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "lambda_s3_role_policy_attachment" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
-  role       = aws_iam_role.lambda_s3_role.name
-}
-
 resource "aws_iam_role_policy_attachment" "lambda_basic_exec_policy_attachment" {
   policy_arn = "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"
   role       = aws_iam_role.lambda_s3_role.name
@@ -181,12 +176,6 @@ resource "aws_iam_policy_attachment" "step_functions_lambda_policy_attachment" {
   roles      = [aws_iam_role.step_functions_role.name]
 }
 
-resource "aws_iam_policy_attachment" "step_functions_s3_policy_attachment" {
-  name       = "step_functions_s3_policy_attachment"
-  policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
-  roles      = [aws_iam_role.step_functions_role.name]
-}
-
 resource "aws_iam_policy_attachment" "step_functions_start_execution_policy_attachment" {
   name       = "step_functions_start_execution_policy_attachment"
   policy_arn = "arn:aws:iam::aws:policy/AWSStepFunctionsFullAccess"
@@ -205,6 +194,54 @@ resource "aws_sfn_state_machine" "state_machine" {
     inventory_name = aws_s3_bucket_inventory.input_bucket_inventory.name,
     manifest_date  = "2023-04-09T01-00Z"
   })
+}
+
+resource "aws_iam_role" "glue_role" {
+  name = "glue_role"
+
+  assume_role_policy = jsonencode({
+    Version   = "2012-10-17"
+    Statement = [
+      {
+        Action    = "sts:AssumeRole"
+        Effect    = "Allow"
+        Principal = {
+          Service = "glue.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "glue_cloudwatch_policy_attachment" {
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"
+  role       = aws_iam_role.glue_role.name
+}
+
+resource "aws_s3_bucket" "glue_jobs_bucket" {
+  bucket = "nechn-glue-jobs-bucket"
+}
+
+resource "aws_s3_object" "glue_script" {
+  bucket = aws_s3_bucket.glue_jobs_bucket.bucket
+  key    = "glue/transform_to_jsonl.py"
+  source = "../glue/transform_to_jsonl.py"
+}
+
+resource "aws_glue_job" "example" {
+  name         = "convert_to_jsonl"
+  role_arn     = aws_iam_role.glue_role.arn
+  glue_version = "1.0"
+  max_capacity = 1
+
+  command {
+    name            = "pythonshell"
+    python_version  = "3.9"
+    script_location = "s3://${aws_s3_bucket.glue_jobs_bucket.id}/${aws_s3_object.glue_script.key}"
+  }
+  default_arguments = {
+    "--job-language" = "python",
+  }
 }
 
 resource "aws_athena_database" "json_comp_results_db" {
@@ -233,4 +270,10 @@ resource "aws_athena_named_query" "view_query" {
     run_id_path   = "2023-04-10T17:10:44.269Z/3334173f-138e-3faa-aeae-9d715fc2f3b2"
   })
   workgroup = aws_athena_workgroup.json_comp_results_db_wg.name
+}
+
+resource "aws_iam_policy_attachment" "s3_role_policy_attachment" {
+  name       = "s3_fa_policy_attachment"
+  policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+  roles      = [aws_iam_role.lambda_s3_role.name, aws_iam_role.step_functions_role.name, aws_iam_role.glue_role.name]
 }
