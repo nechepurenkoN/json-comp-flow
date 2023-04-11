@@ -206,3 +206,31 @@ resource "aws_sfn_state_machine" "state_machine" {
     manifest_date  = "2023-04-09T01-00Z"
   })
 }
+
+resource "aws_athena_database" "json_comp_results_db" {
+  name   = "json_comp_results"
+  bucket = aws_s3_bucket.result_bucket.id
+}
+
+resource "aws_athena_workgroup" "json_comp_results_db_wg" {
+  name = "json_comp_athena_wg"
+
+  configuration {
+    enforce_workgroup_configuration    = true
+    publish_cloudwatch_metrics_enabled = true
+
+    result_configuration {
+      output_location = "s3://${aws_s3_bucket.result_bucket.bucket}/athena/"
+    }
+  }
+}
+
+resource "aws_athena_named_query" "view_query" {
+  name     = "view_query"
+  database = aws_athena_database.json_comp_results_db.name
+  query    = templatefile("athena_query.sql", {
+    result_bucket = aws_s3_bucket.result_bucket.bucket,
+    run_id_path   = "2023-04-10T17:10:44.269Z/3334173f-138e-3faa-aeae-9d715fc2f3b2"
+  })
+  workgroup = aws_athena_workgroup.json_comp_results_db_wg.name
+}
