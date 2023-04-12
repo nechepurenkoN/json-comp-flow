@@ -196,60 +196,6 @@ resource "aws_sfn_state_machine" "state_machine" {
   })
 }
 
-resource "aws_iam_role" "glue_role" {
-  name = "glue_role"
-
-  assume_role_policy = jsonencode({
-    Version   = "2012-10-17"
-    Statement = [
-      {
-        Action    = "sts:AssumeRole"
-        Effect    = "Allow"
-        Principal = {
-          Service = "glue.amazonaws.com"
-        }
-      }
-    ]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "glue_cloudwatch_policy_attachment" {
-  policy_arn = "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"
-  role       = aws_iam_role.glue_role.name
-}
-
-resource "aws_iam_role_policy_attachment" "glue_fa_policy_attachment" {
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"
-  role       = aws_iam_role.glue_role.name
-}
-
-resource "aws_s3_bucket" "glue_jobs_bucket" {
-  bucket = "nechn-glue-jobs-bucket"
-}
-
-resource "aws_s3_object" "glue_script" {
-  bucket = aws_s3_bucket.glue_jobs_bucket.bucket
-  key    = "glue/transform_to_jsonl.py"
-  source = "../glue/transform_to_jsonl.py"
-}
-
-resource "aws_glue_job" "convert_to_jsonl" {
-  name              = "convert_to_jsonl"
-  role_arn          = aws_iam_role.glue_role.arn
-  glue_version      = "4.0"
-  worker_type       = "G.1X"
-  number_of_workers = 2
-
-  command {
-    name            = "glueetl"
-    python_version  = "3"
-    script_location = "s3://${aws_s3_bucket.glue_jobs_bucket.id}/${aws_s3_object.glue_script.key}"
-  }
-  default_arguments = {
-    "--job-language" = "python",
-  }
-}
-
 resource "aws_athena_database" "json_comp_results_db" {
   name   = "json_comp_results"
   bucket = aws_s3_bucket.result_bucket.id
