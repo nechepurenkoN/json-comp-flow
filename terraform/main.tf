@@ -218,6 +218,11 @@ resource "aws_iam_role_policy_attachment" "glue_cloudwatch_policy_attachment" {
   role       = aws_iam_role.glue_role.name
 }
 
+resource "aws_iam_role_policy_attachment" "glue_fa_policy_attachment" {
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"
+  role       = aws_iam_role.glue_role.name
+}
+
 resource "aws_s3_bucket" "glue_jobs_bucket" {
   bucket = "nechn-glue-jobs-bucket"
 }
@@ -228,15 +233,16 @@ resource "aws_s3_object" "glue_script" {
   source = "../glue/transform_to_jsonl.py"
 }
 
-resource "aws_glue_job" "example" {
-  name         = "convert_to_jsonl"
-  role_arn     = aws_iam_role.glue_role.arn
-  glue_version = "1.0"
-  max_capacity = 1
+resource "aws_glue_job" "convert_to_jsonl" {
+  name              = "convert_to_jsonl"
+  role_arn          = aws_iam_role.glue_role.arn
+  glue_version      = "4.0"
+  worker_type       = "G.1X"
+  number_of_workers = 2
 
   command {
-    name            = "pythonshell"
-    python_version  = "3.9"
+    name            = "glueetl"
+    python_version  = "3"
     script_location = "s3://${aws_s3_bucket.glue_jobs_bucket.id}/${aws_s3_object.glue_script.key}"
   }
   default_arguments = {
@@ -275,5 +281,5 @@ resource "aws_athena_named_query" "view_query" {
 resource "aws_iam_policy_attachment" "s3_role_policy_attachment" {
   name       = "s3_fa_policy_attachment"
   policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
-  roles      = [aws_iam_role.lambda_s3_role.name, aws_iam_role.step_functions_role.name, aws_iam_role.glue_role.name]
+  roles      = [aws_iam_role.lambda_s3_role.name, aws_iam_role.step_functions_role.name]
 }
